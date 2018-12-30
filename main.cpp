@@ -68,7 +68,7 @@ static std::vector<char> readFile(const std::string& filename)
 }
 
 
-    
+
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -115,6 +115,68 @@ class HelloTriangleApplication {
 			createImageViews();
             createRenderPass();
             createGraphicsPipeline();
+            createFramebuffers();
+            createCommandPool();
+            createCommandBuffer();
+        }
+
+        void createCommandBuffer()
+        {
+            commandBuffers.resize(swapChainFramebuffers.size());
+
+            VkCommandBufferAllocateInfo allocInfo = {};
+            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            allocInfo.commandPool = commandPool;
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+
+            if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+                throw std::runtime_error("failed to allocate command buffer!");
+            }
+
+            for (size_t i = 0; i < commandBuffers.size(); i++) {
+                VkCommandBufferBeginInfo beginInfo = {};
+                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+                beginInfo.pInheritanceInfo = nullptr;
+
+                if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to begin recording command buffer!");
+                }
+
+                VkRenderPassBeginInfo renderPassInfo = {};
+                renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                renderPassInfo.renderPass = renderPass;
+                renderPassInfo.framebuffer = swapChainFramebuffers[i];
+                renderPassInfo.renderArea.offset = {0, 0};
+                renderPassInfo.renderArea.extent = swapChainExtent;
+
+                VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+                renderPassInfo.clearValueCount = 1;
+                renderPassInfo.pClearValues = &clearColor;
+
+                vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+                vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+                vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+                vkCmdEndRenderPass(commandBuffers[i]);
+                if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to record command buffer!");
+                }
+            }
+
+        }
+
+        void createCommandPool() {
+            QueueFamilyIndices QueueFamilyIndices = findQueueFamilies(physicalDevice);
+            VkCommandPoolCreateInfo poolInfo = {};
+            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            poolInfo.queueFamilyIndex = QueueFamilyIndices.graphicsFamily.value();
+            poolInfo.flags = 0;
+
+            if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create command pool");
+            }
         }
 
         void createRenderPass()
@@ -230,7 +292,7 @@ class HelloTriangleApplication {
             colorBlending.blendConstants[1] = 0.0f;
             colorBlending.blendConstants[2] = 0.0f;
             colorBlending.blendConstants[3] = 0.0f;
-            
+
             VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
             pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipelineLayoutInfo.setLayoutCount = 0;
@@ -244,7 +306,7 @@ class HelloTriangleApplication {
             pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
             pipelineInfo.stageCount = 2;
             pipelineInfo.pStages = shaderStages;
-            
+
             pipelineInfo.pVertexInputState = &vertexInputInfo;
             pipelineInfo.pInputAssemblyState = &inputAssembly;
             pipelineInfo.pViewportState = &viewportState;
@@ -256,7 +318,7 @@ class HelloTriangleApplication {
             pipelineInfo.layout = pipelineLayout;
             pipelineInfo.renderPass = renderPass;
             pipelineInfo.subpass = 0;
-            
+
             pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
             pipelineInfo.basePipelineIndex = -1;
 
@@ -271,6 +333,7 @@ class HelloTriangleApplication {
         void createFramebuffers()
         {
             swapChainFramebuffers.resize(swapChainImageViews.size());
+            std::cout << "swapChainFramebuffers.size: " << swapChainFramebuffers.size() << std::endl;
 
             for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
                 VkImageView attachments[] = {
@@ -394,7 +457,7 @@ class HelloTriangleApplication {
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
             std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-            
+
             int i = 0;
             for (const auto& queueFamily : queueFamilies ) {
                 if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -498,7 +561,7 @@ class HelloTriangleApplication {
 
             createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtentsions.size());
             createInfo.ppEnabledExtensionNames = deviceExtentsions.data();
-            
+
             if (enableValidationLayers) {
                 createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
                 createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -581,7 +644,7 @@ class HelloTriangleApplication {
         bool checkValidationLayerSupport() {
             uint32_t layerCount;
             vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-            
+
             std::vector<VkLayerProperties> availableLayers(layerCount);
             vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
@@ -670,6 +733,8 @@ class HelloTriangleApplication {
         }
 
         void cleanup() {
+            vkDestroyCommandPool(device, commandPool, nullptr);
+
             for (auto framebuffer : swapChainFramebuffers) {
                 vkDestroyFramebuffer(device, framebuffer, nullptr);
             }
@@ -713,7 +778,7 @@ class HelloTriangleApplication {
             createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             createInfo.codeSize = code.size();
             createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-            
+
             VkShaderModule shaderModule;
             if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create shader module!");
@@ -738,12 +803,14 @@ class HelloTriangleApplication {
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
         std::vector<VkFramebuffer> swapChainFramebuffers;
+        VkCommandPool commandPool;
+        std::vector<VkCommandBuffer> commandBuffers;
 };
 
 
 int main() {
     HelloTriangleApplication app;
-    
+
     try {
         app.run();
     } catch (const std::exception& e) {
