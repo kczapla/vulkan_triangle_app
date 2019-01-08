@@ -1,4 +1,4 @@
-VULKAN_SDK_PATH = /home/kczapla/lunarg-vulkan/1.1.92.1/x86_64
+VULKAN_SDK_PATH = /home/kczapla/vulkan-sdk/1.1.92.1/x86_64/
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
 LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
 
