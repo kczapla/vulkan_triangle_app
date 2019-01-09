@@ -258,7 +258,7 @@ class HelloTriangleApplication {
             vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
             for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-                if (typeFilter & (1 << 1) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                if (typeFilter & (i << 1) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                     return i;
                 }
             }
@@ -556,7 +556,6 @@ class HelloTriangleApplication {
         void createFramebuffers()
         {
             swapChainFramebuffers.resize(swapChainImageViews.size());
-            std::cout << "swapChainFramebuffers.size: " << swapChainFramebuffers.size() << std::endl;
 
             for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
                 VkImageView attachments[] = {
