@@ -1,5 +1,6 @@
 VULKAN_SDK_PATH = /home/kczapla/vulkan-sdk/1.1.92.1/x86_64/
-CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
+STB_INCLUDE_PATH = /home/kczapla/main/src-code/stb/
+CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include -I$(STB_INCLUDE_PATH)
 LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
 
 VulkanTest: main.cpp
